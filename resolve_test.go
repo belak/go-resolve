@@ -103,28 +103,34 @@ func TestResolve(t *testing.T) {
 
 	// Test broken dependency chain
 	r = NewResolver()
-	r.AddNode(needsInt)
+	err = r.AddNode(needsInt)
+	assert.NoError(t, err)
 	_, err = r.Resolve()
 	assert.Error(t, err, "missing dependency, but no error")
 
 	// Ensure when we have a valid dep chain, no error occurs.
-	r.AddNode(providesInt)
+	err = r.AddNode(providesInt)
+	assert.NoError(t, err)
 	_, err = r.Resolve()
 	assert.NoError(t, err, "valid dep chain caused error")
 
 	r = NewResolver()
-	r.AddNode(returnsNilErr)
+	err = r.AddNode(returnsNilErr)
+	assert.NoError(t, err)
 	_, err = r.Resolve()
 	assert.NoError(t, err, "returning nil error caused error")
 
 	r = NewResolver()
-	r.AddNode(returnsNonNilError)
+	err = r.AddNode(returnsNonNilError)
+	assert.NoError(t, err)
 	_, err = r.Resolve()
 	assert.Error(t, err, "returning non-nil error did not cause error")
 
 	r = NewResolver()
-	r.AddNode(cyclePartOne)
-	r.AddNode(cyclePartTwo)
+	err = r.AddNode(cyclePartOne)
+	assert.NoError(t, err)
+	err = r.AddNode(cyclePartTwo)
+	assert.NoError(t, err)
 	_, err = r.Resolve()
 	assert.Error(t, err, "cycle did not cause error")
 
