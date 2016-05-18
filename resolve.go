@@ -20,7 +20,7 @@ var errorType = reflect.TypeOf((*error)(nil)).Elem()
 
 // TODO: Wrap errors
 
-type node struct {
+type funcNode struct {
 	nodeID int
 
 	provides []reflect.Type
@@ -29,12 +29,12 @@ type node struct {
 	raw interface{}
 }
 
-func newNode(nodeID int, item interface{}) (*node, error) {
+func newFuncNode(nodeID int, item interface{}) (*funcNode, error) {
 	if item == nil {
 		return nil, errors.New("Must not pass a nil item into newNode")
 	}
 
-	n := &node{
+	n := &funcNode{
 		nodeID: nodeID,
 		raw:    item,
 	}
@@ -59,7 +59,7 @@ func newNode(nodeID int, item interface{}) (*node, error) {
 	return n, nil
 }
 
-func (n *node) ID() int {
+func (n *funcNode) ID() int {
 	return n.nodeID
 }
 
@@ -68,7 +68,7 @@ func (n *node) ID() int {
 type Resolver struct {
 	graph *simple.DirectedGraph
 
-	providedBy map[reflect.Type]*node
+	providedBy map[reflect.Type]graph.Node
 }
 
 // NewResolver returns an empty resolve set which can be used for resolving
@@ -77,14 +77,14 @@ func NewResolver() *Resolver {
 	return &Resolver{
 		graph: simple.NewDirectedGraph(0, 0),
 
-		providedBy: make(map[reflect.Type]*node),
+		providedBy: make(map[reflect.Type]graph.Node),
 	}
 }
 
 // AddNode adds a function to an internal graph of dependencies. The resolution
 // will be done when Resolve is called.
 func (r *Resolver) AddNode(item interface{}) error {
-	n, err := newNode(r.graph.NewNodeID(), item)
+	n, err := newFuncNode(r.graph.NewNodeID(), item)
 	if err != nil {
 		return err
 	}
@@ -127,7 +127,7 @@ func (r *Resolver) Resolve() (inject.Injector, error) {
 	for _, rawNode := range g.Nodes() {
 		// We need our original node type. Because this is controlled
 		// internally, we don't need to check if this type inference works.
-		n := rawNode.(*node)
+		n := rawNode.(*funcNode)
 
 		for _, t := range n.requires {
 			depNode, ok := r.providedBy[t]
@@ -159,7 +159,7 @@ func (r *Resolver) Resolve() (inject.Injector, error) {
 	// For each node, we need to call it, then add the returned values to the
 	// injector.
 	for _, rawNode := range order {
-		n := rawNode.(*node)
+		n := rawNode.(*funcNode)
 		vals, err := injector.Invoke(n.raw)
 		if err != nil {
 			return nil, err

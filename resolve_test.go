@@ -16,7 +16,7 @@ func TestNode(t *testing.T) {
 	nodeID := g.NewNodeID()
 
 	// Test the happy path with no args
-	n, err := newNode(nodeID, func() {})
+	n, err := newFuncNode(nodeID, func() {})
 	assert.NoError(t, err, "error while making node")
 
 	assert.Equal(t, len(n.provides), 0, "number of provided types should be 0")
@@ -26,15 +26,15 @@ func TestNode(t *testing.T) {
 	assert.Equal(t, n.ID(), nodeID, "Node ID does not match given ID")
 
 	// Ensure we error on a non-function type
-	n, err = newNode(nodeID, 42)
+	n, err = newFuncNode(nodeID, 42)
 	assert.Error(t, err, "no error while making node with invalid type")
 
 	// Ensure we error on nil
-	n, err = newNode(nodeID, nil)
+	n, err = newFuncNode(nodeID, nil)
 	assert.Error(t, err, "no error while making node with invalid type")
 
 	// Ensure the types match when given one argument
-	n, err = newNode(nodeID, func(int) {})
+	n, err = newFuncNode(nodeID, func(int) {})
 	assert.NoError(t, err, "error while making node")
 
 	assert.Equal(t, len(n.provides), 0, "number of provided types should be 0")
@@ -42,7 +42,7 @@ func TestNode(t *testing.T) {
 	assert.Equal(t, n.requires[0].Kind(), reflect.Int, "required type should be Int")
 
 	// Ensure the types match when given one return value
-	n, err = newNode(nodeID, func() int { return 0 })
+	n, err = newFuncNode(nodeID, func() int { return 0 })
 	assert.NoError(t, err, "error while making node")
 
 	assert.Equal(t, len(n.provides), 1, "number of provided types should be 1")
@@ -135,7 +135,7 @@ func TestResolve(t *testing.T) {
 	assert.Error(t, err, "cycle did not cause error")
 
 	r = NewResolver()
-	n, err := newNode(r.graph.NewNodeID(), needsInt)
+	n, err := newFuncNode(r.graph.NewNodeID(), needsInt)
 	assert.NoError(t, err)
 	n.requires = nil // this will mess up the internal topo sort so we can get to the inject error
 	r.graph.AddNode(n)
