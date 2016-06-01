@@ -15,10 +15,25 @@ import (
 // explicitly mentioned in the example for reflect.TypeOf.
 var errorType = reflect.TypeOf((*error)(nil)).Elem()
 
-// TODO: Add method of simply adding dependency nodes without requiring the use
-// of a constructor. This is meant to be used when building frameworks.
-
 // TODO: Wrap errors
+
+// EnsureValidFactory will return nil if a factory is valid and an
+// error if the factory cannot be used.
+func EnsureValidFactory(item interface{}) error {
+	if item == nil {
+		return errors.New("Factory cannot be nil")
+	}
+
+	// We need to ensure it's a function, otherwise the function calls to grab
+	// the number of arguments and return values will panic.
+	t := reflect.TypeOf(item)
+
+	if t.Kind() != reflect.Func {
+		return errors.New("Factory is not a func")
+	}
+
+	return nil
+}
 
 type funcNode struct {
 	nodeID int
@@ -30,8 +45,9 @@ type funcNode struct {
 }
 
 func newFuncNode(nodeID int, item interface{}) (*funcNode, error) {
-	if item == nil {
-		return nil, errors.New("Must not pass a nil item into newNode")
+	err := EnsureValidFactory(item)
+	if err != nil {
+		return nil, err
 	}
 
 	n := &funcNode{
@@ -39,12 +55,9 @@ func newFuncNode(nodeID int, item interface{}) (*funcNode, error) {
 		raw:    item,
 	}
 
-	// We need to ensure it's a function, otherwise the function calls to grab
-	// the number of arguments and return values will panic.
+	// We've already ensured that this is a factory in
+	// EnsureValidFactory, so we don't need to do it again here.
 	t := reflect.TypeOf(item)
-	if t.Kind() != reflect.Func {
-		return nil, errors.New("Not a func")
-	}
 
 	// Grab all the provided args
 	for i := 0; i < t.NumOut(); i++ {
@@ -66,8 +79,7 @@ func (n *funcNode) ID() int {
 // Resolver is a set of values which, when called in the proper order, contain
 // all the requirements as return values of other functions.
 type Resolver struct {
-	graph *simple.DirectedGraph
-
+	graph      *simple.DirectedGraph
 	providedBy map[reflect.Type]graph.Node
 }
 
@@ -75,8 +87,7 @@ type Resolver struct {
 // function calls.
 func NewResolver() *Resolver {
 	return &Resolver{
-		graph: simple.NewDirectedGraph(0, 0),
-
+		graph:      simple.NewDirectedGraph(0, 0),
 		providedBy: make(map[reflect.Type]graph.Node),
 	}
 }
