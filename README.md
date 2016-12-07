@@ -31,6 +31,24 @@ any signature, this is a requirement.
 We work around this by checking that the function will be valid for
 injection at the time it's added.
 
+## How does it work?
+
+The actual concept behind ordering dependencies is fairly
+simple. Essentially, a dependency graph needs to be created, then you
+can just run a topological sort on the graph. The order of the nodes
+from that sort is the order items needs to be loaded in.
+
+When we add a function to a resolver, we generate a graph node which
+contains a list of all the types needed to run that function as well
+as which types are returned. Any error types are ignored until the
+function itself is run.
+
+After all nodes are added, simply call Resolve. This will determine
+the load order, load all plugins, and add any non-error return values
+to an Injector for use after plugins are loaded. If any function
+returns a non-nil error value, that will be returned as soon as it
+happens.
+
 ## Other stuff
 
 Be sure to check out [go-plugin](https://github.com/belak/go-plugin),
