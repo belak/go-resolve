@@ -107,6 +107,7 @@ func TestResolve(t *testing.T) {
 	assert.NoError(t, err)
 	_, err = r.Resolve()
 	assert.Error(t, err, "missing dependency, but no error")
+	assert.Equal(t, err.Error(), "Missing dependencies: int")
 
 	// Ensure when we have a valid dep chain, no error occurs.
 	err = r.AddNode(providesInt)

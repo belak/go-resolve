@@ -3,6 +3,7 @@ package resolve
 import (
 	"errors"
 	"reflect"
+	"strings"
 
 	"github.com/codegangsta/inject"
 	"github.com/gonum/graph"
@@ -134,6 +135,8 @@ func (r *Resolver) Resolve() (inject.Injector, error) {
 	// later, so the edges don't overlap.
 	graph.Copy(g, r.graph)
 
+	missingDeps := map[reflect.Type]bool{}
+
 	// Loop over all nodes and add edges for all requirements
 	for _, rawNode := range g.Nodes() {
 		// We need our original node type. Because this is controlled
@@ -143,7 +146,8 @@ func (r *Resolver) Resolve() (inject.Injector, error) {
 		for _, t := range n.requires {
 			depNode, ok := r.providedBy[t]
 			if !ok {
-				return nil, errors.New("Missing dependency")
+				missingDeps[t] = true
+				continue
 			}
 
 			// Each requirement is defined as an edge from the dependency to the
@@ -155,6 +159,14 @@ func (r *Resolver) Resolve() (inject.Injector, error) {
 				W: 1,
 			})
 		}
+	}
+
+	if len(missingDeps) > 0 {
+		missingDepStrs := []string{}
+		for dep := range missingDeps {
+			missingDepStrs = append(missingDepStrs, dep.PkgPath()+dep.Name())
+		}
+		return nil, errors.New("Missing dependencies: " + strings.Join(missingDepStrs, ", "))
 	}
 
 	// Now that the full graph with edges is finished, we run a sort and start
