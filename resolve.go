@@ -164,7 +164,7 @@ func (r *Resolver) Resolve() (inject.Injector, error) {
 	if len(missingDeps) > 0 {
 		missingDepStrs := []string{}
 		for dep := range missingDeps {
-			missingDepStrs = append(missingDepStrs, dep.PkgPath()+dep.Name())
+			missingDepStrs = append(missingDepStrs, dep.String())
 		}
 		return nil, errors.New("Missing dependencies: " + strings.Join(missingDepStrs, ", "))
 	}

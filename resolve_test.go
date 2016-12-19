@@ -89,6 +89,7 @@ func TestAddNode(t *testing.T) {
 func TestResolve(t *testing.T) {
 	var (
 		needsInt           = func(int) {}
+		needsTestingT      = func(*testing.T) {}
 		providesInt        = func() int { return 42 }
 		returnsNilErr      = func() error { return nil }
 		returnsNonNilError = func() error { return errors.New("Hello error") }
@@ -101,7 +102,14 @@ func TestResolve(t *testing.T) {
 	_, err := r.Resolve()
 	assert.NoError(t, err, "nothing in dep chain, so no error")
 
-	// Test broken dependency chain
+	// Test broken dependency chains
+	r = NewResolver()
+	err = r.AddNode(needsTestingT)
+	assert.NoError(t, err)
+	_, err = r.Resolve()
+	assert.Error(t, err, "missing dependency, but no error")
+	assert.Equal(t, err.Error(), "Missing dependencies: *testing.T")
+
 	r = NewResolver()
 	err = r.AddNode(needsInt)
 	assert.NoError(t, err)
