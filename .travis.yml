@@ -11,7 +11,7 @@ before_install:
 script:
   - go install -v ./...
   - go test -v ./...
-  - $HOME/gopath/bin/gometalinter ./... --deadline=10s
+  - $HOME/gopath/bin/gometalinter ./... --deadline=10s --cyclo-over=12
   - go test -covermode=count -coverprofile=profile.cov
 
 after_script:
