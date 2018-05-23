@@ -5,15 +5,15 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/gonum/graph/simple"
 	"github.com/stretchr/testify/assert"
+	"gonum.org/v1/gonum/graph/simple"
 )
 
 // TODO: Ensure the inject.Injector has the values expected
 
 func TestNode(t *testing.T) {
-	g := simple.NewDirectedGraph(0, 0)
-	nodeID := g.NewNodeID()
+	g := simple.NewDirectedGraph()
+	nodeID := g.NewNode()
 
 	// Test the happy path with no args
 	n, err := newFuncNode(nodeID, func() {})
@@ -23,7 +23,7 @@ func TestNode(t *testing.T) {
 	assert.Equal(t, len(n.requires), 0, "number of required types should be 0")
 
 	// Ensure the node ID is set properly
-	assert.Equal(t, n.ID(), nodeID, "Node ID does not match given ID")
+	assert.Equal(t, n.ID(), nodeID.ID(), "Node ID does not match given ID")
 
 	// Ensure we error on a non-function type
 	n, err = newFuncNode(nodeID, 42)
@@ -144,7 +144,7 @@ func TestResolve(t *testing.T) {
 	assert.Error(t, err, "cycle did not cause error")
 
 	r = NewResolver()
-	n, err := newFuncNode(r.graph.NewNodeID(), needsInt)
+	n, err := newFuncNode(r.graph.NewNode(), needsInt)
 	assert.NoError(t, err)
 	n.requires = nil // this will mess up the internal topo sort so we can get to the inject error
 	r.graph.AddNode(n)

@@ -6,9 +6,9 @@ import (
 	"strings"
 
 	"github.com/codegangsta/inject"
-	"github.com/gonum/graph"
-	"github.com/gonum/graph/simple"
-	"github.com/gonum/graph/topo"
+	"gonum.org/v1/gonum/graph"
+	"gonum.org/v1/gonum/graph/simple"
+	"gonum.org/v1/gonum/graph/topo"
 )
 
 // It is more of a pain than it should be to get an interface type as just
@@ -37,7 +37,7 @@ func EnsureValidFactory(item interface{}) error {
 }
 
 type funcNode struct {
-	nodeID int
+	graph.Node
 
 	provides []reflect.Type
 	requires []reflect.Type
@@ -45,15 +45,15 @@ type funcNode struct {
 	raw interface{}
 }
 
-func newFuncNode(nodeID int, item interface{}) (*funcNode, error) {
+func newFuncNode(node graph.Node, item interface{}) (*funcNode, error) {
 	err := EnsureValidFactory(item)
 	if err != nil {
 		return nil, err
 	}
 
 	n := &funcNode{
-		nodeID: nodeID,
-		raw:    item,
+		Node: node,
+		raw:  item,
 	}
 
 	// We've already ensured that this is a factory in
@@ -73,10 +73,6 @@ func newFuncNode(nodeID int, item interface{}) (*funcNode, error) {
 	return n, nil
 }
 
-func (n *funcNode) ID() int {
-	return n.nodeID
-}
-
 // Resolver is a set of values which, when called in the proper order, contain
 // all the requirements as return values of other functions.
 type Resolver struct {
@@ -88,7 +84,7 @@ type Resolver struct {
 // function calls.
 func NewResolver() *Resolver {
 	return &Resolver{
-		graph:      simple.NewDirectedGraph(0, 0),
+		graph:      simple.NewDirectedGraph(),
 		providedBy: make(map[reflect.Type]graph.Node),
 	}
 }
@@ -96,7 +92,7 @@ func NewResolver() *Resolver {
 // AddNode adds a function to an internal graph of dependencies. The resolution
 // will be done when Resolve is called.
 func (r *Resolver) AddNode(item interface{}) error {
-	n, err := newFuncNode(r.graph.NewNodeID(), item)
+	n, err := newFuncNode(r.graph.NewNode(), item)
 	if err != nil {
 		return err
 	}
@@ -129,7 +125,7 @@ func (r *Resolver) AddNode(item interface{}) error {
 // because this requires a topological sort every time this is run, it is
 // recommended to not use this often.
 func (r *Resolver) Resolve() (inject.Injector, error) {
-	g := simple.NewDirectedGraph(0, 0)
+	g := simple.NewDirectedGraph()
 
 	// Copy the current node graph into a new one, in case we want to do this
 	// later, so the edges don't overlap.
@@ -156,7 +152,6 @@ func (r *Resolver) Resolve() (inject.Injector, error) {
 			g.SetEdge(simple.Edge{
 				F: depNode,
 				T: n,
-				W: 1,
 			})
 		}
 	}
