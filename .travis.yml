@@ -11,8 +11,8 @@ before_install:
 script:
   - go install -v ./...
   - go test -v ./...
-  - $HOME/gopath/bin/gometalinter ./... --deadline=10s --cyclo-over=12
-  - go test -covermode=count -coverprofile=profile.cov
+  - $HOME/gopath/bin/gometalinter ./... --deadline=30s --cyclo-over=12
 
 after_script:
+  - go test -covermode=count -coverprofile=profile.cov
   - $HOME/gopath/bin/goveralls -coverprofile=profile.cov -service=travis-ci

@@ -26,11 +26,11 @@ func TestNode(t *testing.T) {
 	assert.Equal(t, n.ID(), nodeID.ID(), "Node ID does not match given ID")
 
 	// Ensure we error on a non-function type
-	n, err = newFuncNode(nodeID, 42)
+	_, err = newFuncNode(nodeID, 42)
 	assert.Error(t, err, "no error while making node with invalid type")
 
 	// Ensure we error on nil
-	n, err = newFuncNode(nodeID, nil)
+	_, err = newFuncNode(nodeID, nil)
 	assert.Error(t, err, "no error while making node with invalid type")
 
 	// Ensure the types match when given one argument
