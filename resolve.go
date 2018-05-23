@@ -34,19 +34,24 @@ func EnsureValidFactory(item interface{}) error {
 }
 
 type funcNode struct {
+	name string
+
 	provides []reflect.Type
 	requires []reflect.Type
 
 	raw interface{}
 }
 
-func newFuncNode(item interface{}) (*funcNode, error) {
+func newFuncNode(name string, item interface{}) (*funcNode, error) {
 	err := EnsureValidFactory(item)
 	if err != nil {
 		return nil, err
 	}
 
-	n := &funcNode{raw: item}
+	n := &funcNode{
+		name: name,
+		raw:  item,
+	}
 
 	// We've already ensured that this is a factory in
 	// EnsureValidFactory, so we don't need to do it again here.
@@ -69,6 +74,7 @@ func newFuncNode(item interface{}) (*funcNode, error) {
 // all the requirements as return values of other functions.
 type Resolver struct {
 	nodes      []*funcNode
+	names      map[string]bool
 	providedBy map[reflect.Type]*funcNode
 }
 
@@ -76,14 +82,19 @@ type Resolver struct {
 // function calls.
 func NewResolver() *Resolver {
 	return &Resolver{
+		names:      make(map[string]bool),
 		providedBy: make(map[reflect.Type]*funcNode),
 	}
 }
 
 // AddNode adds a function to an internal graph of dependencies. The resolution
 // will be done when Resolve is called.
-func (r *Resolver) AddNode(item interface{}) error {
-	n, err := newFuncNode(item)
+func (r *Resolver) AddNode(name string, item interface{}) error {
+	if r.names[name] {
+		return errors.New("Name provided by multiple nodes")
+	}
+
+	n, err := newFuncNode(name, item)
 	if err != nil {
 		return err
 	}
@@ -105,6 +116,7 @@ func (r *Resolver) AddNode(item interface{}) error {
 
 	// Now that we have a valid node, we need to save it for later.
 	r.nodes = append(r.nodes, n)
+	r.names[name] = true
 
 	return nil
 }

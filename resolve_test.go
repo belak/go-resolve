@@ -12,22 +12,22 @@ import (
 
 func TestNode(t *testing.T) {
 	// Test the happy path with no args
-	n, err := newFuncNode(func() {})
+	n, err := newFuncNode("A", func() {})
 	assert.NoError(t, err, "unexpected error while making node")
 
 	assert.Equal(t, len(n.provides), 0, "number of provided types should be 0")
 	assert.Equal(t, len(n.requires), 0, "number of required types should be 0")
 
 	// Ensure we error on a non-function type
-	_, err = newFuncNode(42)
+	_, err = newFuncNode("A", 42)
 	assert.Error(t, err, "no error while making node with invalid type")
 
 	// Ensure we error on nil
-	_, err = newFuncNode(nil)
+	_, err = newFuncNode("A", nil)
 	assert.Error(t, err, "no error while making node with invalid type")
 
 	// Ensure the types match when given one argument
-	n, err = newFuncNode(func(int) {})
+	n, err = newFuncNode("A", func(int) {})
 	assert.NoError(t, err, "unexpected error while making node")
 
 	assert.Equal(t, len(n.provides), 0, "number of provided types should be 0")
@@ -35,7 +35,7 @@ func TestNode(t *testing.T) {
 	assert.Equal(t, n.requires[0].Kind(), reflect.Int, "required type should be Int")
 
 	// Ensure the types match when given one return value
-	n, err = newFuncNode(func() int { return 0 })
+	n, err = newFuncNode("A", func() int { return 0 })
 	assert.NoError(t, err, "unexpected error while making node")
 
 	assert.Equal(t, len(n.provides), 1, "number of provided types should be 1")
@@ -45,32 +45,35 @@ func TestNode(t *testing.T) {
 
 func TestAddNode(t *testing.T) {
 	resolver := NewResolver()
-	err := resolver.AddNode(func() {})
+	err := resolver.AddNode("A", func() {})
 	assert.NoError(t, err, "unexpected error while adding node")
+
+	err = resolver.AddNode("A", func() {})
+	assert.Error(t, err, "no error with duplicate node name")
 
 	// Ensure that adding a node to the resolver adds it to the internal node
 	// list.
 	assert.Equal(t, len(resolver.nodes), 1)
 
 	// Ensure that adding an invalid type will return an error
-	err = resolver.AddNode(1)
+	err = resolver.AddNode("B", 1)
 	assert.Error(t, err, "no error while adding invalid node type")
 
 	// Ensure that adding a nil node will return an error
-	err = resolver.AddNode(nil)
+	err = resolver.AddNode("C", nil)
 	assert.Error(t, err, "no error while adding nil node")
 
 	// Ensure that adding a node which adds provided types will add them to
 	// providedBy.
-	err = resolver.AddNode(func() int { return 42 })
+	err = resolver.AddNode("D", func() int { return 42 })
 	assert.NoError(t, err, "unexpected error while adding node")
 
 	// Ensure that adding a node with an overlapping provided type will error.
-	err = resolver.AddNode(func() int { return 42 })
+	err = resolver.AddNode("E", func() int { return 42 })
 	assert.Error(t, err, "no error while adding duplicate provided type")
 
 	// Ensure that error doesn't get added to the providedBy mapping
-	err = resolver.AddNode(func() error { return nil })
+	err = resolver.AddNode("F", func() error { return nil })
 	assert.NoError(t, err, "unexpected error while adding node")
 
 	_, ok := resolver.providedBy[errorType]
@@ -95,48 +98,48 @@ func TestResolve(t *testing.T) {
 
 	// Test broken dependency chains
 	r = NewResolver()
-	err = r.AddNode(needsTestingT)
+	err = r.AddNode("A", needsTestingT)
 	assert.NoError(t, err)
 	_, err = r.Resolve()
 	assert.Error(t, err, "missing dependency, but no error")
 	assert.Equal(t, err.Error(), "Missing dependencies: *testing.T")
 
 	r = NewResolver()
-	err = r.AddNode(needsInt)
+	err = r.AddNode("A", needsInt)
 	assert.NoError(t, err)
 	_, err = r.Resolve()
 	assert.Error(t, err, "missing dependency, but no error")
 	assert.Equal(t, err.Error(), "Missing dependencies: int")
 
 	// Ensure when we have a valid dep chain, no error occurs.
-	err = r.AddNode(providesInt)
+	err = r.AddNode("B", providesInt)
 	assert.NoError(t, err)
 	_, err = r.Resolve()
 	assert.NoError(t, err, "valid dep chain caused error")
 
 	r = NewResolver()
-	err = r.AddNode(returnsNilErr)
+	err = r.AddNode("A", returnsNilErr)
 	assert.NoError(t, err)
 	_, err = r.Resolve()
 	assert.NoError(t, err, "returning nil error caused error")
 
 	r = NewResolver()
-	err = r.AddNode(returnsNonNilError)
+	err = r.AddNode("A", returnsNonNilError)
 	assert.NoError(t, err)
 	_, err = r.Resolve()
 	assert.Error(t, err, "returning non-nil error did not cause error")
 
 	r = NewResolver()
-	err = r.AddNode(cyclePartOne)
+	err = r.AddNode("1", cyclePartOne)
 	assert.NoError(t, err)
-	err = r.AddNode(cyclePartTwo)
+	err = r.AddNode("2", cyclePartTwo)
 	assert.NoError(t, err)
 	_, err = r.Resolve()
 	assert.Error(t, err, "cycle did not cause error")
 
 	// Note that this shouldn't be possible to hit
 	r = NewResolver()
-	n, err := newFuncNode(needsInt)
+	n, err := newFuncNode("A", needsInt)
 	assert.NoError(t, err)
 	n.requires = nil // this will mess up the internal topo sort so we can get to the inject error
 	r.nodes = append(r.nodes, n)
