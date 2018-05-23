@@ -180,8 +180,15 @@ func (r *Resolver) getOrder() ([]*funcNode, error) {
 
 		// If there are no ready nodes, we have a circular dependency
 		if len(ready) == 0 {
-			// TODO: Display the nodes in the cycle
-			return nil, errors.New("Circular dependency found")
+			var depStrings []string
+			for node, deps := range nodeDependencies {
+				var depNames []string
+				for depNode := range deps {
+					depNames = append(depNames, depNode.name)
+				}
+				depStrings = append(depStrings, node.name+" -> "+strings.Join(depNames, " "))
+			}
+			return nil, errors.New("Circular dependency found: " + strings.Join(depStrings, ", "))
 		}
 
 		for _, node := range ready {

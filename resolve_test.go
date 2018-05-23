@@ -136,6 +136,10 @@ func TestResolve(t *testing.T) {
 	assert.NoError(t, err)
 	_, err = r.Resolve()
 	assert.Error(t, err, "cycle did not cause error")
+	assert.Contains(t, []string{
+		"Circular dependency found: 1 -> 2, 2 -> 1",
+		"Circular dependency found: 2 -> 1, 1 -> 2",
+	}, err.Error(), "unexpected cycle error value")
 
 	// Note that this shouldn't be possible to hit
 	r = NewResolver()
